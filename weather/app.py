@@ -39,7 +39,7 @@ def create_app(config_class=ProductionConfig):
         }), 401)
 
 
-    ring_model = RingModel()
+    weather_model = WeatherModel()
 
 
     ####################################################

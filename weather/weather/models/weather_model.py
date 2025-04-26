@@ -4,16 +4,16 @@ import os
 import time
 from typing import List
 
-from boxing.models.boxers_model import Boxers
-from boxing.utils.logger import configure_logger
-from boxing.utils.api_utils import get_random
+from weather.models.locations_model import Locations
+from weather.utils.logger import configure_logger
+from weather.utils.api_utils import get_weather
 
 
 logger = logging.getLogger(__name__)
 configure_logger(logger)
 
 
-class RingModel:
+class WeatherModel:
     """A class to manage the the ring in which boxers have fights.
 
     """
