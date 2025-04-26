@@ -72,3 +72,37 @@ def get_weather(location: str) -> float:
         logger.error(f"Request to random.org failed: {e}")
         raise RuntimeError(f"Request to random.org failed: {e}")
 
+def get_historical_weather(location: str) -> float:
+    """
+    Fetches historical weather data from openweathermap.org for a location.
+    
+    Args:
+        location: The location to get historical weather for.
+
+    Returns:
+        dict[str]: The historical weather from random.org.
+
+    Raises:
+        ValueError: If the response from openweathermap.org is not a valid float.
+        RuntimeError: If the request to openweathermap.org fails due to a timeout or other request-related error.
+
+    """
+    # Placeholder for historical weather feature
+    pass
+
+def get_weather_for_location(location: str) -> float:
+    """
+    Fetches weather data for a location.
+    
+    Args:
+        location: The location to get weather for.
+
+    Returns:
+        dict[str]: The weather from random.org.
+
+    Raises:
+        ValueError: If the response from openweathermap.org is not a valid float.
+        RuntimeError: If the request to openweathermap.org fails due to a timeout or other request-related error.
+
+    """
+    return get_weather(location)

@@ -6,8 +6,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from config import ProductionConfig
 
 from weather.db import db
-from weather.models.weather_model import WeatherModel
-from weather.models.user_model import Users
+from weather.models.favorites_model import FavoritesModel
+from weather.models.weather_model import Weather
 from weather.utils.logger import configure_logger
 
 
@@ -39,7 +39,7 @@ def create_app(config_class=ProductionConfig):
         }), 401)
 
 
-    weather_model = WeatherModel()
+    favorites_model = FavoritesModel()
 
 
     ####################################################
