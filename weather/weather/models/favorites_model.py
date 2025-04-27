@@ -6,6 +6,7 @@ import logging
 from weather.models.locations_model import Locations
 from weather.utils.logger import configure_logger
 from weather.utils.api_utils import get_weather
+from weather.utils.api_utils import get_historical_weather
 
 logger = logging.getLogger(__name__)
 configure_logger(logger)
@@ -204,27 +205,30 @@ class FavoritesModel:
         
         return result
 
-    def get_historical_weather_for_location(self, location_id: int) -> Dict[str, Any]:
-        """Placeholder for historical weather feature.
-        
-        This would require additional API functionality to implement fully.
+    def get_historical_weather_for_location(self, location_name: int) -> Dict[str, Any]:
+        """Get the previous 7 days weather for a specified location.
 
         Args:
             location_id (int): The ID of the location to get historical weather for.
 
         Returns:
-            Dict[str, Any]: A placeholder response.
+            List[Dict[str, Any]]: A list of dictionaries containing historical weather data of the specified location for each day.
         """
+        historical_data = []
         try:
-            location = Locations.get_location_by_id(location_id)
-            logger.info(f"Historical weather requested for {location.name} (not implemented)")
-            return {
-                'Location': location.name,
-                'Message': 'Historical weather data not implemented yet'
-            }
-        except ValueError as e:
-            logger.error(str(e))
-            raise
+            # Try to get location from database first
+
+            location = Locations.get_location_by_name(location_name)
+                
+            # Get weather data from API
+            historical_data = get_historical_weather(location)
+            logger.info(f"Historical weather for {location_name} retrieval successful")
+            return historical_data
+            
+        except Exception as e:
+            logger.error(f"Error getting historical weather data for {location_name}: {str(e)}")
+            raise RuntimeError(f"Error getting historical weather data for {location_name}: {str(e)}")
+
 
     def get_forecast_for_location(self, location_id: int) -> Dict[str, Any]:
         """Placeholder for forecast feature.
