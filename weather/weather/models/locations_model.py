@@ -123,7 +123,7 @@ class Locations(db.Model):
         return location
 
     @classmethod
-    def delete(cls, location_id: int) -> None:
+    def delete_location(cls, location_id: int) -> None:
         """Delete a location by its ID.
 
         Args:

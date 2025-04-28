@@ -7,7 +7,7 @@ from config import ProductionConfig
 
 from weather.db import db
 from weather.models.favorites_model import FavoritesModel
-from weather.models.weather_model import Weather
+from weather.models.locations_model import Locations
 from weather.utils.logger import configure_logger
 
 
@@ -258,33 +258,33 @@ def create_app(config_class=ProductionConfig):
 
     ##########################################################
     #
-    # Boxers
+    # Locations
     #
     ##########################################################
 
-    @app.route('/api/reset-boxers', methods=['DELETE'])
-    def reset_boxers() -> Response:
-        """Recreate the boxers table to delete boxers users.
+    @app.route('/api/reset-locations', methods=['DELETE'])
+    def reset_locations() -> Response:
+        """Recreate the locations table to delete locations.
 
         Returns:
-            JSON response indicating the success of recreating the Boxers table.
+            JSON response indicating the success of recreating the Locations table.
 
         Raises:
-            500 error if there is an issue recreating the Boxers table.
+            500 error if there is an issue recreating the Locations table.
         """
         try:
-            app.logger.info("Received request to recreate Boxers table")
+            app.logger.info("Received request to recreate Locations table")
             with app.app_context():
-                Boxers.__table__.drop(db.engine)
-                Boxers.__table__.create(db.engine)
-            app.logger.info("Boxers table recreated successfully")
+                Locations.__table__.drop(db.engine)
+                Locations.__table__.create(db.engine)
+            app.logger.info("Locations table recreated successfully")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Boxers table recreated successfully"
+                "message": f"Locations table recreated successfully"
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Boxers table recreation failed: {e}")
+            app.logger.error(f"Locations table recreation failed: {e}")
             return make_response(jsonify({
                 "status": "error",
                 "message": "An internal error occurred while deleting users",
@@ -292,32 +292,33 @@ def create_app(config_class=ProductionConfig):
             }), 500)
 
 
-    @app.route('/api/add-boxer', methods=['POST'])
+    @app.route('/api/add-location', methods=['POST'])
     @login_required
-    def add_boxer() -> Response:
-        """Route to add a new boxer to the gym.
+    def add_location() -> Response:
+        """Route to add a new favorite.
 
         Expected JSON Input:
-            - name (str): The boxer's name.
-            - weight (int): The boxer's weight.
-            - height (int): The boxer's height.
-            - reach (float): The boxer's reach in inches.
-            - age (int): The boxer's age.
+            - name (str): The locations's name.
+            - fahrenheit (float): The location's temperature in fahrenheit.
+            - celsius (float): The location's temperature in celsius.
+            - humidity (int): The location's humidity.
+            - wind_speed (float): The location's wind_speed.
+            - weather_description (str): A description of the location's weather.
 
         Returns:
-            JSON response indicating the success of the boxer addition.
+            JSON response indicating the success of the location addition.
 
         Raises:
             400 error if input validation fails.
-            500 error if there is an issue adding the boxer to the database.
+            500 error if there is an issue adding the location to the database.
 
         """
-        app.logger.info("Received request to create new boxer")
+        app.logger.info("Received request to create new location")
 
         try:
             data = request.get_json()
 
-            required_fields = ["name", "weight", "height", "reach", "age"]
+            required_fields = ["name", "fahrenheit", "celsius", "humidity", "wind_speed", "weather_description"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -328,169 +329,171 @@ def create_app(config_class=ProductionConfig):
                 }), 400)
 
             name = data["name"]
-            weight = data["weight"]
-            height = data["height"]
-            reach = data["reach"]
-            age = data["age"]
+            fahrenheit = data["fahrenheit"]
+            celsius = data["celsius"]
+            humidity = data["humidity"]
+            wind_speed = data["wind_speed"]
+            weather_description = data["weather_description"]
 
             if (
                 not isinstance(name, str)
-                or not isinstance(weight, (int, float))
-                or not isinstance(height, (int, float))
-                or not isinstance(reach, (int, float))
-                or not isinstance(age, int)
+                or not isinstance(fahrenheit, (int, float))
+                or not isinstance(celsius, (int, float))
+                or not isinstance(humidity, (int, float))
+                or not isinstance(wind_speed, int, float)
+                or not isinstance(weather_description, str)
             ):
                 app.logger.warning("Invalid input data types")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "Invalid input types: name should be a string, weight/height/reach should be numbers, age should be an integer"
+                    "message": "Invalid input types: name/weather_description should be a string, fahrenheit/celsius/humidity/wind_speed should be numbers"
                 }), 400)
 
-            app.logger.info(f"Adding boxer: {name}, {weight}kg, {height}cm, {reach} inches, {age} years old")
-            Boxers.create_boxer(name, weight, height, reach, age)
+            app.logger.info(f"Adding location: {name}, {fahrenheit}F, {celsius}C, {humidity}, {wind_speed}, {weather_description}.")
+            Locations.create_boxer(name, fahrenheit, celsius, humidity, wind_speed, weather_description)
 
-            app.logger.info(f"Boxer added successfully: {name}")
+            app.logger.info(f"Location added successfully: {name}")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Boxer '{name}' added successfully"
+                "message": f"Location '{name}' added successfully"
             }), 201)
 
         except Exception as e:
-            app.logger.error(f"Failed to add boxer: {e}")
+            app.logger.error(f"Failed to add location: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while adding the boxer",
+                "message": "An internal error occurred while adding the location",
                 "details": str(e)
             }), 500)
 
 
-    @app.route('/api/delete-boxer/<int:boxer_id>', methods=['DELETE'])
+    @app.route('/api/delete-location/<int:location_id>', methods=['DELETE'])
     @login_required
-    def delete_boxer(boxer_id: int) -> Response:
-        """Route to delete a boxer by ID.
+    def delete_location(location_id: int) -> Response:
+        """Route to delete a location by ID.
 
         Path Parameter:
-            - boxer_id (int): The ID of the boxer to delete.
+            - location_id (int): The ID of the location to delete.
 
         Returns:
             JSON response indicating success of the operation.
 
         Raises:
-            400 error if the boxer does not exist.
-            500 error if there is an issue removing the boxer from the database.
+            400 error if the location does not exist.
+            500 error if there is an issue removing the location from the database.
 
         """
         try:
-            app.logger.info(f"Received request to delete boxer with ID {boxer_id}")
+            app.logger.info(f"Received request to delete location with ID {location_id}")
 
             # Check if the boxer exists before attempting to delete
-            boxer = Boxers.get_boxer_by_id(boxer_id)
-            if not boxer:
-                app.logger.warning(f"Boxer with ID {boxer_id} not found.")
+            location = Locations.get_location_by_id(location_id)
+            if not location:
+                app.logger.warning(f"Location with ID {location_id} not found.")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Boxer with ID {boxer_id} not found"
+                    "message": f"Location with ID {location_id} not found"
                 }), 400)
 
-            Boxers.delete_boxer(boxer_id)
-            app.logger.info(f"Successfully deleted boxer with ID {boxer_id}")
+            Locations.delete_location(location_id)
+            app.logger.info(f"Successfully deleted location with ID {location_id}")
 
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Boxer with ID {boxer_id} deleted successfully"
+                "message": f"Location with ID {location_id} deleted successfully"
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Failed to add boxer: {e}")
+            app.logger.error(f"Failed to add location: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while deleting the boxer",
+                "message": "An internal error occurred while deleting the location",
                 "details": str(e)
             }), 500)
 
 
-    @app.route('/api/get-boxer-by-id/<int:boxer_id>', methods=['GET'])
+    @app.route('/api/get-location-by-id/<int:location_id>', methods=['GET'])
     @login_required
-    def get_boxer_by_id(boxer_id: int) -> Response:
-        """Route to get a boxer by its ID.
+    def get_location_by_id(location_id: int) -> Response:
+        """Route to get a location by its ID.
 
         Path Parameter:
-            - boxer_id (int): The ID of the boxer.
+            - location_id (int): The ID of the location.
 
         Returns:
-            JSON response containing the boxer details if found.
+            JSON response containing the location details if found.
 
         Raises:
-            400 error if the boxer is not found.
-            500 error if there is an issue retrieving the boxer from the database.
+            400 error if the location is not found.
+            500 error if there is an issue retrieving the location from the database.
 
         """
         try:
-            app.logger.info(f"Received request to retrieve boxer with ID {boxer_id}")
+            app.logger.info(f"Received request to retrieve location with ID {location_id}")
 
-            boxer = Boxers.get_boxer_by_id(boxer_id)
+            location = Locations.get_location_by_id(location_id)
 
-            if not boxer:
-                app.logger.warning(f"Boxer with ID {boxer_id} not found.")
+            if not location:
+                app.logger.warning(f"Location with ID {location_id} not found.")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Boxer with ID {boxer_id} not found"
+                    "message": f"Location with ID {location_id} not found"
                 }), 400)
 
-            app.logger.info(f"Successfully retrieved boxer: {boxer}")
+            app.logger.info(f"Successfully retrieved location: {location}")
             return make_response(jsonify({
                 "status": "success",
-                "boxer": boxer
+                "location": location
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Error retrieving boxer with ID {boxer_id}: {e}")
+            app.logger.error(f"Error retrieving location with ID {location_id}: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while retrieving the boxer",
+                "message": "An internal error occurred while retrieving the location",
                 "details": str(e)
             }), 500)
 
 
-    @app.route('/api/get-boxer-by-name/<string:boxer_name>', methods=['GET'])
+    @app.route('/api/get-location-by-name/<string:location_name>', methods=['GET'])
     @login_required
-    def get_boxer_by_name(boxer_name: str) -> Response:
-        """Route to get a boxer by its name.
+    def get_location_by_name(location_name: str) -> Response:
+        """Route to get a location by its name.
 
         Path Parameter:
-            - boxer_name (str): The name of the boxer.
+            - location_name (str): The name of the location.
 
         Returns:
-            JSON response containing the boxer details if found.
+            JSON response containing the location details if found.
 
         Raises:
-            400 error if the boxer name is missing or not found.
-            500 error if there is an issue retrieving the boxer from the database.
+            400 error if the location name is missing or not found.
+            500 error if there is an issue retrieving the location from the database.
 
         """
         try:
-            app.logger.info(f"Received request to retrieve boxer with name '{boxer_name}'")
+            app.logger.info(f"Received request to retrieve location with name '{location_name}'")
 
-            boxer = Boxers.get_boxer_by_name(boxer_name)
+            location = Locations.get_location_by_name(location_name)
 
-            if not boxer:
-                app.logger.warning(f"Boxer '{boxer_name}' not found.")
+            if not location:
+                app.logger.warning(f"Location '{location_name}' not found.")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Boxer '{boxer_name}' not found"
+                    "message": f"Location '{location_name}' not found"
                 }), 400)
 
-            app.logger.info(f"Successfully retrieved boxer: {boxer}")
+            app.logger.info(f"Successfully retrieved location: {location}")
             return make_response(jsonify({
                 "status": "success",
-                "boxer": boxer
+                "location": location
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Error retrieving boxer with name '{boxer_name}': {e}")
+            app.logger.error(f"Error retrieving location with name '{location_name}': {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while retrieving the boxer",
+                "message": "An internal error occurred while retrieving the location",
                 "details": str(e)
             }), 500)
 
@@ -543,190 +546,135 @@ def create_app(config_class=ProductionConfig):
             }), 500)
 
 
-    @app.route('/api/clear-boxers', methods=['POST'])
+    @app.route('/api/clear-favorites', methods=['POST'])
     @login_required
-    def clear_boxers() -> Response:
-        """Route to clear the list of boxers from the ring.
+    def clear_favorites() -> Response:
+        """Route to clear the list of locations from the favorites.
 
         Returns:
             JSON response indicating success of the operation.
 
         Raises:
-            500 error if there is an issue clearing boxers.
+            500 error if there is an issue clearing locations.
 
         """
         try:
-            app.logger.info("Clearing all boxers...")
+            app.logger.info("Clearing all locations...")
 
-            ring_model.clear_ring()
+            favorite_model.clear_favorites()
 
-            app.logger.info("Boxers cleared from ring successfully.")
+            app.logger.info("Locations cleared from favorites successfully.")
             return make_response(jsonify({
                 "status": "success",
-                "message": "Boxers have been cleared from ring."
+                "message": "Locations have been cleared from favorites."
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Failed to clear boxers: {e}")
+            app.logger.error(f"Failed to clear favorites: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while clearing boxers",
+                "message": "An internal error occurred while clearing favorites",
                 "details": str(e)
             }), 500)
 
 
-    @app.route('/api/enter-ring', methods=['POST'])
+    @app.route('/api/add-favorite', methods=['POST'])
     @login_required
-    def enter_ring() -> Response:
-        """Route to have a boxer enter the ring for the next fight.
+    def add_favorite() -> Response:
+        """Route to add a favorite location to the app.
 
         Expected JSON Input:
-            - name (str): The boxer's name.
+            - name (str): The location's name.
 
         Returns:
-            JSON response indicating the success of the boxer entering the ring.
+            JSON response indicating the success of adding the favorite.
 
         Raises:
-            400 error if the request is invalid (e.g., boxer name missing or too many boxers in the ring).
-            500 error if there is an issue with the boxer entering the ring.
+            400 error if the request is invalid (e.g., favorite name missing).
+            500 error if there is an issue with adding the favorite.
 
         """
         try:
             data = request.get_json()
-            boxer_name = data.get("name")
+            location_name = data.get("name")
 
-            if not boxer_name:
-                app.logger.warning("Attempted to enter ring without specifying a boxer.")
+            if not location_name:
+                app.logger.warning("Attempted to add favorite without specifying a location.")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "You must name a boxer"
+                    "message": "You must name a location"
                 }), 400)
 
-            app.logger.info(f"Attempting to enter {boxer_name} into the ring.")
+            app.logger.info(f"Attempting to add {location_name} to favorites.")
 
-            boxer = Boxers.get_boxer_by_name(boxer_name)
+            location = Locations.get_location_by_name(location_name)
 
-            if not boxer:
-                app.logger.warning(f"Boxer '{boxer_name}' not found.")
+            if not location:
+                app.logger.warning(f"Location '{location_name}' not found.")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Boxer '{boxer_name}' not found"
+                    "message": f"Location '{location_name}' not found"
                 }), 400)
 
             try:
-                ring_model.enter_ring(boxer)
+                favorite_model.add_favorite(location)
             except ValueError as e:
-                app.logger.warning(f"Cannot enter {boxer_name}: {e}")
+                app.logger.warning(f"Cannot enter {location_name}: {e}")
                 return make_response(jsonify({
                     "status": "error",
                     "message": str(e)
                 }), 400)
 
-            boxers = ring_model.get_boxers()
+            favorites = favorite_model.get_favorites()
 
-            app.logger.info(f"Boxer '{boxer_name}' entered the ring. Current boxers: {boxers}")
+            app.logger.info(f"Location '{location_name}' added to favorites. Current favorites: {favorites}")
 
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Boxer '{boxer_name}' is now in the ring.",
-                "boxers": boxers
+                "message": f"Location '{location_name}' is now in favorites.",
+                "favorites": favorites
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Failed to enter boxer into the ring: {e}")
+            app.logger.error(f"Failed to add location to favorites: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while entering the boxer into the ring",
+                "message": "An internal error occurred while adding location to favorites",
                 "details": str(e)
             }), 500)
 
 
-    @app.route('/api/get-boxers', methods=['GET'])
+    @app.route('/api/get-favorites', methods=['GET'])
     @login_required
-    def get_boxers() -> Response:
-        """Route to get the list of boxers in the ring.
+    def get_favorites() -> Response:
+        """Route to get the list of locations in favorites.
 
         Returns:
-            JSON response with the list of boxers.
+            JSON response with the list of favorites.
 
         Raises:
-            500 error if there is an issue getting the boxers.
+            500 error if there is an issue getting the favorites.
 
         """
         try:
-            app.logger.info("Retrieving list of boxers...")
+            app.logger.info("Retrieving list of favorites...")
 
-            boxers = ring_model.get_boxers()
+            favorites = favorite_model.get_favorites()
 
-            app.logger.info(f"Retrieved {len(boxers)} boxer(s).")
+            app.logger.info(f"Retrieved {len(favorites)} favorite(s).")
             return make_response(jsonify({
                 "status": "success",
-                "boxers": boxers
+                "favorites": favorites
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Failed to retrieve boxers: {e}")
+            app.logger.error(f"Failed to retrieve favorites: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An internal error occurred while retrieving boxers",
+                "message": "An internal error occurred while retrieving favorites",
                 "details": str(e)
             }), 500)
-
-
-    ############################################################
-    #
-    # Leaderboard
-    #
-    ############################################################
-
-
-    @app.route('/api/leaderboard', methods=['GET'])
-    def get_leaderboard() -> Response:
-        """Route to get the leaderboard of boxers sorted by wins or win percentage.
-
-        Query Parameters:
-            - sort (str): The field to sort by ('wins', or 'win_pct'). Default is 'wins'.
-
-        Returns:
-            JSON response with a sorted leaderboard of boxers.
-
-        Raises:
-            400 error if an invalid sort parameter is provided.
-            500 error if there is an issue generating the leaderboard.
-
-        """
-        try:
-            # Get the sort parameter from the query string, default to 'wins'
-            sort_by = request.args.get('sort', 'wins').lower()
-
-            valid_sort_fields = {'wins', 'win_pct'}
-
-            if sort_by not in valid_sort_fields:
-                app.logger.warning(f"Invalid sort parameter: '{sort_by}'")
-                return make_response(jsonify({
-                    "status": "error",
-                    "message": f"Invalid sort parameter '{sort_by}'. Must be one of: {', '.join(valid_sort_fields)}"
-                }), 400)
-
-            app.logger.info(f"Generating leaderboard sorted by '{sort_by}'")
-
-            leaderboard_data = Boxers.get_leaderboard(sort_by)
-
-            app.logger.info(f"Leaderboard generated successfully. {len(leaderboard_data)} boxers ranked.")
-
-            return make_response(jsonify({
-                "status": "success",
-                "leaderboard": leaderboard_data
-            }), 200)
-
-        except Exception as e:
-            app.logger.error(f"Error generating leaderboard: {e}")
-            return make_response(jsonify({
-                "status": "error",
-                "message": "An internal error occurred while generating the leaderboard",
-                "details": str(e)
-            }), 500)
-
+            
     return app
 
 
