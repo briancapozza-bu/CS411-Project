@@ -99,10 +99,11 @@ class FavoritesModel:
         Returns:
             None
         """
+        if not self.favorites:
+            logger.warning("Attempted to clear an empty favorites.")
+            return
+        logger.info("Clearing the locations from the favorites.")
         self.favorites.clear()
-        self._location_cache.clear()
-        self._ttl.clear()
-        logger.info("Cleared all favorites.")
 
     def get_favorites(self) -> List[Locations]:
         """Get all favorite locations.
@@ -128,7 +129,10 @@ class FavoritesModel:
                     logger.warning(f"Location with id {location_id} not found, removing from favorites.")
                     self.favorites.remove(location_id)
         
-        logger.info(f"Retrieved {len(result)} favorite locations.")
+        if len(result) == 0:
+            logger.warning(f"Retrieved {len(result)} favorite locations.")
+        else:
+            logger.info(f"Retrieved {len(result)} favorite locations.")
         return result
 
     def get_weather_for_location(self, location_name: str) -> Dict[str, Any]:

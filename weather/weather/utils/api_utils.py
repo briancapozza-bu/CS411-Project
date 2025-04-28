@@ -58,7 +58,8 @@ def get_weather(location: str) -> dict:
                 'Fahrenheit': temp_f,
                 'Celsius': temp_c,
                 'Humidity': humidity,
-                'Wind Speed': wind_speed
+                'Wind Speed': wind_speed,
+                'Weather Description': weather_desc
             }
         except KeyError:
             raise ValueError(f"Invalid response from openweathermap.org: {data}")

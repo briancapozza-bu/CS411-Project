@@ -55,7 +55,8 @@ MOCK_WEATHER = {
     'Fahrenheit': 82.4,
     'Celsius': 28.0,
     'Humidity': 63,
-    'Wind Speed': 6.17
+    'Wind Speed': 6.17,
+    'Weather Description': 'few clouds'
 }   
                    
                  
