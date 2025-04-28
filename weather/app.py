@@ -500,50 +500,9 @@ def create_app(config_class=ProductionConfig):
 
     ############################################################
     #
-    # Ring
+    # Favorites
     #
     ############################################################
-
-
-    @app.route('/api/fight', methods=['GET'])
-    @login_required
-    def bout() -> Response:
-        """Route that triggers the fight between the two current boxers.
-
-        Returns:
-            JSON response indicating the winner of the fight.
-
-        Raises:
-            400 error if the fight cannot be triggered due to insufficient combatants.
-            500 error if there is an issue during the fight.
-
-        """
-        try:
-            app.logger.info("Initiating fight...")
-
-            winner = ring_model.fight()
-
-            app.logger.info(f"Fight complete. Winner: {winner}")
-            return make_response(jsonify({
-                "status": "success",
-                "message": "Fight complete",
-                "winner": winner
-            }), 200)
-
-        except ValueError as e:
-            app.logger.warning(f"Fight cannot be triggered: {e}")
-            return make_response(jsonify({
-                "status": "error",
-                "message": str(e)
-            }), 400)
-
-        except Exception as e:
-            app.logger.error(f"Error while triggering fight: {e}")
-            return make_response(jsonify({
-                "status": "error",
-                "message": "An internal error occurred while triggering the fight",
-                "details": str(e)
-            }), 500)
 
 
     @app.route('/api/clear-favorites', methods=['POST'])
