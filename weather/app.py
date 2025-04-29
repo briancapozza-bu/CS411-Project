@@ -44,7 +44,7 @@ def create_app(config_class=ProductionConfig):
 
     ####################################################
     #
-    # Healthchecks
+    # Healthchecksm
     #
     ####################################################
 
@@ -350,7 +350,7 @@ def create_app(config_class=ProductionConfig):
                 }), 400)
 
             app.logger.info(f"Adding location: {name}, {fahrenheit}F, {celsius}C, {humidity}, {wind_speed}, {weather_description}.")
-            Locations.create_boxer(name, fahrenheit, celsius, humidity, wind_speed, weather_description)
+            Locations.create_location(name, fahrenheit, celsius, humidity, wind_speed, weather_description)
 
             app.logger.info(f"Location added successfully: {name}")
             return make_response(jsonify({
@@ -386,7 +386,7 @@ def create_app(config_class=ProductionConfig):
         try:
             app.logger.info(f"Received request to delete location with ID {location_id}")
 
-            # Check if the boxer exists before attempting to delete
+            # Check if the location exists before attempting to delete
             location = Locations.get_location_by_id(location_id)
             if not location:
                 app.logger.warning(f"Location with ID {location_id} not found.")
