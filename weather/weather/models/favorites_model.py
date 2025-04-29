@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 import time
 import os
 import logging
+from datetime import datetime
 
 from weather.models.locations_model import Locations
 from weather.utils.logger import configure_logger
@@ -145,12 +146,14 @@ class FavoritesModel:
             Dict[str, Any]: Weather data for the location.
         """
         try:
-            # Try to get location from database first
+            location = None  # Initialize location to handle cases where it doesn't exist
+
+            # Try to get location from the database first
             try:
                 location = Locations.get_location_by_name(location_name)
-                
+
                 # If we have recent data, use it
-                if location.last_updated and (datetime.now() - location.last_updated).total_seconds() < self.ttl_seconds:
+                if location.last_updated and (datetime.now() - datetime.fromtimestamp(location.last_updated)).total_seconds() < self.ttl_seconds:
                     logger.info(f"Using cached weather data for {location_name}")
                     return {
                         'Location': location.name,
@@ -160,18 +163,16 @@ class FavoritesModel:
                         'Wind Speed': location.wind_speed
                     }
             except ValueError:
-                # Location doesn't exist in database, we'll create it after getting weather data
-                pass
-            
+                # Location doesn't exist in the database
+                logger.info(f"Location {location_name} not found in the database. Fetching from API.")
+
             # Get weather data from API
             weather_data = get_weather(location_name)
-            
-            # Update existing location or create new one
-            try:
-                location = Locations.get_location_by_name(location_name)
+
+            # Update existing location or create a new one
+            if location:
                 location.update_weather(weather_data)
-            except ValueError:
-                # Create new location
+            else:
                 Locations.create_location(
                     name=location_name,
                     fahrenheit=weather_data.get('Fahrenheit'),
@@ -180,12 +181,13 @@ class FavoritesModel:
                     wind_speed=weather_data.get('Wind Speed'),
                     weather_description=weather_data.get('Weather Description')
                 )
-            
+
             return weather_data
-            
+
         except Exception as e:
             logger.error(f"Error getting weather for {location_name}: {str(e)}")
             raise RuntimeError(f"Error getting weather for {location_name}: {str(e)}")
+
 
     def get_all_favorites_with_weather(self) -> List[Dict[str, Any]]:
         """Get all favorites with their current weather data.
