@@ -41,21 +41,24 @@ def sample_locations(sample_location1, sample_location2):
     return [sample_location1, sample_location2]
 
 
-def test_create_location():
-    name="Boston",
-    fahrenheit=82.4,
-    celsius=28.0,
-    humidity=63,
-    wind_speed=6.17,
+def test_create_location(session, app):
+    name="Boston"
+    fahrenheit=82.4
+    celsius=28.0
+    humidity=63
+    wind_speed=6.17
     weather_description='few clouds'
-    location = Locations.create_location(
-        name=name,
-        fahrenheit=fahrenheit,
-        celsius=celsius,
-        humidity=humidity,
-        wind_speed=wind_speed,
-        weather_description= weather_description
-    )
+    with app.app_context(): 
+        location = Locations.create_location(
+            name=name,
+            fahrenheit=fahrenheit,
+            celsius=celsius,
+            humidity=humidity,
+            wind_speed=wind_speed,
+            weather_description= weather_description
+        )
+
+    location = Locations.query.filter_by(name=name).first()
 
     assert location is not None
     assert location.fahrenheit == fahrenheit
@@ -67,9 +70,12 @@ def test_create_location():
 
 # --- Create Location ---
 
-def test_create_existing_location():
-    with pytest.raises(ValueError, match="already exists"):
-        Locations.create_location(name = "Miami")
+def test_create_existing_location(app):
+    with app.app_context():
+        Locations.create_location(name="Miami", fahrenheit=82.4, celsius=28.0, humidity=63, wind_speed=6.17, weather_description='few clouds')
+        
+        with pytest.raises(ValueError, match="UNIQUE constraint failed"):
+            Locations.create_location(name="Miami", fahrenheit=82.4, celsius=28.0, humidity=63, wind_speed=6.17, weather_description='few clouds')
 
 def test_create_location_invalid_data(cls, name, fahrenheit, celsius, humidity, wind_speed, weather_description):
     """Test validation errors when creating a location."""
@@ -102,13 +108,13 @@ def test_get_location_by_name_not_found(app):
 
 def test_delete_location_by_id(session, sample_location1):
     """Test deleting a location by ID."""
-    Locations.delete(sample_location1.id)
+    Locations.delete_location(sample_location1.id)
     assert session.query(Locations).get(sample_location1.id) is None
 
 def test_delete_location_not_found(app):
     """Test deleting a non-existent location by ID."""
     with pytest.raises(ValueError, match="not found"):
-        Locations.delete(999)
+        Locations.delete_location(999)
 
 # --- Weather Update ---
 
