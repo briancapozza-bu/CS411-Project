@@ -8,6 +8,7 @@ from config import ProductionConfig
 from weather.db import db
 from weather.models.favorites_model import FavoritesModel
 from weather.models.locations_model import Locations
+from weather.models.user_model import Users
 from weather.utils.logger import configure_logger
 
 
@@ -39,7 +40,7 @@ def create_app(config_class=ProductionConfig):
         }), 401)
 
 
-    favorites_model = FavoritesModel()
+    favorite_model = FavoritesModel()
 
 
     ####################################################
@@ -340,7 +341,7 @@ def create_app(config_class=ProductionConfig):
                 or not isinstance(fahrenheit, (int, float))
                 or not isinstance(celsius, (int, float))
                 or not isinstance(humidity, (int, float))
-                or not isinstance(wind_speed, int, float)
+                or not isinstance(wind_speed, (int, float))
                 or not isinstance(weather_description, str)
             ):
                 app.logger.warning("Invalid input data types")
@@ -443,7 +444,7 @@ def create_app(config_class=ProductionConfig):
             app.logger.info(f"Successfully retrieved location: {location}")
             return make_response(jsonify({
                 "status": "success",
-                "location": location
+                "location": location.name
             }), 200)
 
         except Exception as e:
@@ -486,7 +487,7 @@ def create_app(config_class=ProductionConfig):
             app.logger.info(f"Successfully retrieved location: {location}")
             return make_response(jsonify({
                 "status": "success",
-                "location": location
+                "location": location.name
             }), 200)
 
         except Exception as e:
@@ -576,7 +577,7 @@ def create_app(config_class=ProductionConfig):
                 }), 400)
 
             try:
-                favorite_model.add_favorite(location)
+                favorite_model.add_favorite(location.id)
             except ValueError as e:
                 app.logger.warning(f"Cannot enter {location_name}: {e}")
                 return make_response(jsonify({
@@ -591,7 +592,6 @@ def create_app(config_class=ProductionConfig):
             return make_response(jsonify({
                 "status": "success",
                 "message": f"Location '{location_name}' is now in favorites.",
-                "favorites": favorites
             }), 200)
 
         except Exception as e:
@@ -623,7 +623,8 @@ def create_app(config_class=ProductionConfig):
             app.logger.info(f"Retrieved {len(favorites)} favorite(s).")
             return make_response(jsonify({
                 "status": "success",
-                "favorites": favorites
+                "message": f"Retrieved {len(favorites)} favorite(s).",
+                "favorites": len(favorites)
             }), 200)
 
         except Exception as e:

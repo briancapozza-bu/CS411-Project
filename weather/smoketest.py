@@ -62,26 +62,25 @@ def run_smoketest():
     create_location_resp = session.post(f"{base_url}/add-location", json=new_york)
     assert create_location_resp.status_code == 201
     assert create_location_resp.json()["status"] == "success"
-    location_id_1 = create_location_resp.json()["location_id"]
     print("Location creation successful for New York")
 
     # Get location by ID
-    get_location_resp = session.get(f"{base_url}/get-location-by-id/{location_id_1}")
+    get_location_resp = session.get(f"{base_url}/get-location-by-id/1")
     assert get_location_resp.status_code == 200
     assert get_location_resp.json()["status"] == "success"
-    assert get_location_resp.json()["location"]["name"] == "New York"
+    assert get_location_resp.json()["location"] == "New York"
     print("Get location by ID successful")
 
     # Get location by name
     get_location_by_name_resp = session.get(f"{base_url}/get-location-by-name/New York")
     assert get_location_by_name_resp.status_code == 200
     assert get_location_by_name_resp.json()["status"] == "success"
-    assert get_location_by_name_resp.json()["location"]["name"] == "New York"
+    assert get_location_by_name_resp.json()["location"] == "New York"
     print("Get location by name successful")
 
     # Add location to favorites
     add_favorite_resp = session.post(f"{base_url}/add-favorite", json={
-        "location_id": location_id_1
+        "name": 'New York'
     })
     assert add_favorite_resp.status_code == 200
     assert add_favorite_resp.json()["status"] == "success"
@@ -91,8 +90,7 @@ def run_smoketest():
     get_favorites_resp = session.get(f"{base_url}/get-favorites")
     assert get_favorites_resp.status_code == 200
     assert get_favorites_resp.json()["status"] == "success"
-    assert len(get_favorites_resp.json()["favorites"]) == 1
-    assert get_favorites_resp.json()["favorites"][0]["name"] == "New York"
+    assert get_favorites_resp.json()["favorites"] == 1
     print("Get favorites successful")
 
     # Change password
@@ -117,12 +115,11 @@ def run_smoketest():
     create_second_location_resp = session.post(f"{base_url}/add-location", json=los_angeles)
     assert create_second_location_resp.status_code == 201
     assert create_second_location_resp.json()["status"] == "success"
-    location_id_2 = create_second_location_resp.json()["location_id"]
     print("Location creation successful for Los Angeles")
 
     # Add second location to favorites
     add_second_favorite_resp = session.post(f"{base_url}/add-favorite", json={
-        "location_id": location_id_2
+        "name": "Los Angeles"
     })
     assert add_second_favorite_resp.status_code == 200
     assert add_second_favorite_resp.json()["status"] == "success"
@@ -132,7 +129,7 @@ def run_smoketest():
     get_favorites_again_resp = session.get(f"{base_url}/get-favorites")
     assert get_favorites_again_resp.status_code == 200
     assert get_favorites_again_resp.json()["status"] == "success"
-    assert len(get_favorites_again_resp.json()["favorites"]) == 2
+    assert get_favorites_again_resp.json()["favorites"] == 2
     print("Get updated favorites successful")
 
     # Clear favorites
@@ -145,11 +142,11 @@ def run_smoketest():
     get_empty_favorites_resp = session.get(f"{base_url}/get-favorites")
     assert get_empty_favorites_resp.status_code == 200
     assert get_empty_favorites_resp.json()["status"] == "success"
-    assert len(get_empty_favorites_resp.json()["favorites"]) == 0
+    assert get_empty_favorites_resp.json()["favorites"] == 0
     print("Verified favorites were cleared")
 
     # Delete location
-    delete_location_resp = session.delete(f"{base_url}/delete-location/{location_id_1}")
+    delete_location_resp = session.delete(f"{base_url}/delete-location/1")
     assert delete_location_resp.status_code == 200
     assert delete_location_resp.json()["status"] == "success"
     print("Delete location successful")

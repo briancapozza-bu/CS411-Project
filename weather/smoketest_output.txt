@@ -1,0 +1,22 @@
+briancapozza@briancapozza:~/CS411-Project/weather$ python3 -m smoketest
+Health check successful
+Reset users successful
+Reset locations successful
+User creation successful
+Login successful
+Location creation successful for New York
+Get location by ID successful
+Get location by name successful
+Add favorite successful
+Get favorites successful
+Password change successful
+Login with new password successful
+Location creation successful for Los Angeles
+Add second favorite successful
+Get updated favorites successful
+Clear favorites successful
+Verified favorites were cleared
+Delete location successful
+Logout successful
+Location creation failed as expected when logged out
+
