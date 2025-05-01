@@ -326,7 +326,7 @@ def create_app(config_class=ProductionConfig):
                 app.logger.warning(f"Missing required fields: {missing_fields}")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Missing required fields: {', '.join(missing_fields)}"
+                    "message": "Invalid input types: name/weather_description should be a string, fahrenheit/celsius/humidity/wind_speed should be numbers"
                 }), 400)
 
             name = data["name"]
