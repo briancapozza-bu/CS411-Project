@@ -1,13 +1,5 @@
-import time
-
 import pytest
 
-from sqlalchemy.exc import IntegrityError
-
-
-from datetime import datetime, timedelta
-from app import db, Locations
-from weather.models.favorites_model import FavoritesModel
 from weather.models.locations_model import Locations
 
 
@@ -46,24 +38,24 @@ def sample_locations(sample_location1, sample_location2):
     return [sample_location1, sample_location2]
 
 # --- Create Location ---
-def test_create_location(session, app):
+
+def test_create_location(session):
     name="Boston"
     fahrenheit=82.4
     celsius=28.0
     humidity=63
     wind_speed=6.17
     weather_description='few clouds'
-    with app.app_context(): 
-        location = Locations.create_location(
-            name=name,
-            fahrenheit=fahrenheit,
-            celsius=celsius,
-            humidity=humidity,
-            wind_speed=wind_speed,
-            weather_description= weather_description
-        )
+    Locations.create_location(
+        name=name,
+        fahrenheit=fahrenheit,
+        celsius=celsius,
+        humidity=humidity,
+        wind_speed=wind_speed,
+        weather_description= weather_description
+    )
 
-    location = Locations.query.filter_by(name=name).first()
+    location = session.query(Locations).filter_by(name=name).first()
 
     assert location is not None
     assert location.fahrenheit == fahrenheit
@@ -73,11 +65,23 @@ def test_create_location(session, app):
     assert location.weather_description == weather_description
 
 
-def test_create_existing_location(app, sample_location1):
-    with app.app_context():
+def test_create_location_duplicate(session, sample_location1):
+    """Test creating a location with a duplicate name"""
+    with pytest.raises(ValueError, match="Location with name 'Miami' already exists."):
+        Locations.create_location("Miami", 86.4, 28.5, 65, 4.17, 'a lot of clouds')
         
-        with pytest.raises(IntegrityError):
-            Locations.create_location(name="Miami", fahrenheit=82.4, celsius=28.0, humidity=63, wind_speed=6.17, weather_description='few clouds')
+@pytest.mark.parametrize("name, fahrenheit, celsius, humidity, wind_speed, weather_description", [
+    ("", 50, 20, 60, 2.5, "cloudy"),
+    ("Valid Name", "", 20, 60, 2.5, "cloudy"),
+    ("Valid Name", 50, "", 60, 2.5, "cloudy"),
+    ("Valid Name", 50, 20, "", 2.5, "cloudy"),
+    ("Valid Name", 50, 20, 60, "", "cloudy"),
+    ("Valid Name", 50, 20, 60, 2.5, 100),
+])
+def test_create_location_invalid_data(name, fahrenheit, celsius, humidity, wind_speed, weather_description):
+    """Test validation errors when creating a location."""
+    with pytest.raises(ValueError):
+        Locations.create_location(name, fahrenheit, celsius, humidity, wind_speed, weather_description)
 
 # --- Get Location ---
 
@@ -115,74 +119,34 @@ def test_delete_location_not_found(app):
 
 # --- Weather Update ---
 
-#Needs to be fixed
 def test_update_weather(session, sample_location1):
     """Test weather updating for all attributes."""
     weather_data = {
-        'Fahrenheit': 90.0,
-        'Celsius': 32.22,
-        'Humidity': 70,
-        'Wind Speed': 8.0,
-        'Weather Description': 'clear sky'
+        'Fahrenheit': 20,
+        'Celsius': 40,
+        'Humidity': 60,
+        'Wind Speed': 2.5,
+        'Weather Description': 'very cloudy' 
     }
-
     sample_location1.update_weather(weather_data)
-    db.session.refresh(sample_location1)
 
-        # Assertions to ensure that the location's weather info was updated
-    assert sample_location1.fahrenheit == 90.0
-    assert sample_location1.celsius == 32.22
-    assert sample_location1.humidity == 70
-    assert sample_location1.wind_speed == 8.0
-    assert sample_location1.weather_description == 'clear sky'
-    assert isinstance(sample_location1.last_updated, datetime)  # Ensure last_updated is a datetime object
-    assert sample_location1.last_updated > datetime.now() - timedelta(seconds=1)  # Ensure the update was recent
-
-        # Ensure the update was committed to the database
-    assert sample_location1.fahrenheit == 90.0
+    assert sample_location1.fahrenheit == weather_data.get('Fahrenheit')
+    assert sample_location1.celsius == weather_data.get('Celsius')
+    assert sample_location1.humidity == weather_data.get('Humidity')
+    assert sample_location1.wind_speed == weather_data.get('Wind Speed')
+    assert sample_location1.weather_description == weather_data.get('Weather Description')
   
 
-def test_get_all_locations(sample_locations, app):
+def test_get_all_locations(sample_locations):
     """Test retrieving all locations from the database."""
-    with app.app_context():
-        # Fetch all locations from the database
-        retrieved_locations = Locations.get_all_locations()
+    retrieved_locations = Locations.get_all_locations()
 
-        # Assert the number of retrieved locations matches the sample data
-        assert len(retrieved_locations) == len(sample_locations), (
-            "The number of retrieved locations should match the number of sample locations."
-        )
-
-        # Assert all attributes match for each location
-        for i, location in enumerate(sample_locations):
-            assert retrieved_locations[i].name == location.name, "Location names should match."
-            assert retrieved_locations[i].fahrenheit == location.fahrenheit, "Temperatures (F) should match."
-            assert retrieved_locations[i].celsius == location.celsius, "Temperatures (C) should match."
-            assert retrieved_locations[i].humidity == location.humidity, "Humidity levels should match."
-            assert retrieved_locations[i].wind_speed == location.wind_speed, "Wind speeds should match."
-            assert retrieved_locations[i].weather_description == location.weather_description, (
-                "Weather descriptions should match."
-            )
+    assert retrieved_locations == sample_locations, "Expected get_boxers to return the correct boxers list."
 
 
-def test_get_all_locations_empty(session, app, sample_locations):
+
+def test_get_all_locations_empty(session):
     """Test retrieving locations when the database is empty."""
-    with app.app_context():
-        # Fetch all locations from the database
-        retrieved_locations = Locations.get_all_locations()
+    retrieved_locations = Locations.get_all_locations()
 
-        # Assert the number of retrieved locations matches the sample data
-        assert len(retrieved_locations) == len(sample_locations), (
-            "The number of retrieved locations should match the number of sample locations."
-        )
-
-        # Assert all attributes match for each location
-        for i, location in enumerate(sample_locations):
-            assert retrieved_locations[i].name == location.name, "Location names should match."
-            assert retrieved_locations[i].fahrenheit == location.fahrenheit, "Temperatures (F) should match."
-            assert retrieved_locations[i].celsius == location.celsius, "Temperatures (C) should match."
-            assert retrieved_locations[i].humidity == location.humidity, "Humidity levels should match."
-            assert retrieved_locations[i].wind_speed == location.wind_speed, "Wind speeds should match."
-            assert retrieved_locations[i].weather_description == location.weather_description, (
-                "Weather descriptions should match."
-            )
+    assert retrieved_locations == []

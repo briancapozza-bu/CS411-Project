@@ -1,7 +1,7 @@
 from typing import List
 from datetime import datetime
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from weather.db import db
 from weather.utils.logger import configure_logger
@@ -67,21 +67,48 @@ class Locations(db.Model):
         Raises:
             IntegrityError: If a location with the same name already exists.
         """
+        logger.info(f"Received request to create location: {name}")
+        
+        location = cls(
+            name=name,
+            fahrenheit=fahrenheit,
+            celsius=celsius,
+            humidity=humidity,
+            wind_speed=wind_speed,
+            weather_description=weather_description
+        )
+        if not name or not isinstance(name, str):
+            raise ValueError("Name must be a non-empty string.")
+        if not fahrenheit or (not isinstance(fahrenheit, int) and not isinstance(fahrenheit, float)):
+            raise ValueError("Fahrenheit must be an int or float.")
+        if not celsius or (not isinstance(celsius, int) and not isinstance(celsius, float)):
+            raise ValueError("Celsius must be an int or float.")
+        if not humidity or (not isinstance(humidity, int) and not isinstance(humidity, float)):
+            raise ValueError("Humidity must be an int or float.")
+        if not wind_speed or (not isinstance(wind_speed, int) and not isinstance(wind_speed, float)):
+            raise ValueError("Wind Speed must be an int or float.")
+        if not weather_description or not isinstance(weather_description, str):
+            raise ValueError("Weather Description must be a non-empty string.")
+        
         try:
-            location = cls(
-                name=name,
-                fahrenheit=fahrenheit,
-                celsius=celsius,
-                humidity=humidity,
-                wind_speed=wind_speed,
-                weather_description=weather_description
-            )
+            # Check for existing location with key name
+            existing = Locations.query.filter_by(name=name.strip()).first()
+            if existing:
+                logger.error(f"Location already exists: {name}")
+                raise ValueError(f"Location with name '{name}' already exists.")
+
             db.session.add(location)
             db.session.commit()
-            logger.info(f"Created location: {name}")
+            logger.info(f"Location successfully added: {name}")
+
         except IntegrityError:
+            logger.error(f"Location already exists: {name}")
             db.session.rollback()
-            logger.error(f"Location {name} already exists.")
+            raise ValueError(f"Location with name '{name}' already exists.")
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database error while creating location: {e}")
+            db.session.rollback()
             raise
 
     @classmethod
@@ -97,11 +124,21 @@ class Locations(db.Model):
         Raises:
             ValueError: If no location with the given ID exists.
         """
-        location = cls.query.get(location_id)
-        if location is None:
-            logger.error(f"Location with id {location_id} not found.")
-            raise ValueError(f"Location with id {location_id} not found.")
-        return location
+        logger.info(f"Attempting to retrieve location with ID {location_id}")
+
+        try:
+            location = cls.query.get(location_id)
+
+            if not location:
+                logger.info(f"Location with ID {location_id} not found")
+                raise ValueError(f"Location with ID {location_id} not found")
+
+            logger.info(f"Successfully retrieved location: {location.name}")
+            return location
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database error while retrieving location by ID {location_id}: {e}")
+            raise
 
     @classmethod
     def get_location_by_name(cls, name: str) -> "Locations":
@@ -116,11 +153,21 @@ class Locations(db.Model):
         Raises:
             ValueError: If no location with the given name exists.
         """
-        location = cls.query.filter_by(name=name).first()
-        if location is None:
-            logger.error(f"Location with name {name} not found.")
-            raise ValueError(f"Location with name {name} not found.")
-        return location
+        logger.info(f"Attempting to retrieve location with name '{name}'")
+
+        try:
+            location = cls.query.filter_by(name=name.strip()).first()
+
+            if not location:
+                logger.info(f"Location with name '{name}' not found")
+                raise ValueError(f"Location with name '{name}' not found")
+
+            logger.info(f"Successfully retrieved location: {location.name}")
+            return location
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database error while retrieving location by name '{name}'")
+            raise
 
     @classmethod
     def delete_location(cls, location_id: int) -> None:
@@ -134,22 +181,31 @@ class Locations(db.Model):
 
         Raises:
             ValueError: If no location with the given ID exists.
+            SQLAlchemyError: For any database-related issues.
         """
-        location = cls.query.get(location_id)
-        if location is None:
-            logger.error(f"Cannot delete: location with id {location_id} not found.")
-            raise ValueError(f"Location with id {location_id} not found.")
-        
-        db.session.delete(location)
-        db.session.commit()
-        logger.info(f"Deleted location {location.name} (ID: {location_id})")
+        logger.info(f"Received request to delete location with ID {location_id}")
+
+        try:
+            location = cls.query.get(location_id)
+            if not location:
+                logger.warning(f"Attempted to delete non-existent location with ID {location_id}")
+                raise ValueError(f"Location with ID {location_id} not found")
+
+            db.session.delete(location)
+            db.session.commit()
+            logger.info(f"Successfully deleted location with ID {location_id}")
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database error while deleting location with ID {location_id}: {e}")
+            db.session.rollback()
+            raise
 
     def update_weather(self, weather_data: dict) -> None:
         """Update weather information for this location.
 
         Args:
             weather_data (dict): Dictionary containing updated weather data.
-                Expected keys: 'Fahrenheit', 'Celsius', 'Humidity', 'Wind Speed'
+                Expected keys: 'Fahrenheit', 'Celsius', 'Humidity', 'Wind Speed', 'Weather Description'
 
         Returns:
             None
