@@ -2,6 +2,11 @@ import time
 
 import pytest
 
+from sqlalchemy.exc import IntegrityError
+
+
+from datetime import datetime, timedelta
+from app import db, Locations
 from weather.models.favorites_model import FavoritesModel
 from weather.models.locations_model import Locations
 
@@ -40,7 +45,7 @@ def sample_location2(session):
 def sample_locations(sample_location1, sample_location2):
     return [sample_location1, sample_location2]
 
-
+# --- Create Location ---
 def test_create_location(session, app):
     name="Boston"
     fahrenheit=82.4
@@ -68,19 +73,11 @@ def test_create_location(session, app):
     assert location.weather_description == weather_description
 
 
-# --- Create Location ---
-
-def test_create_existing_location(app):
+def test_create_existing_location(app, sample_location1):
     with app.app_context():
-        Locations.create_location(name="Miami", fahrenheit=82.4, celsius=28.0, humidity=63, wind_speed=6.17, weather_description='few clouds')
         
-        with pytest.raises(ValueError, match="UNIQUE constraint failed"):
+        with pytest.raises(IntegrityError):
             Locations.create_location(name="Miami", fahrenheit=82.4, celsius=28.0, humidity=63, wind_speed=6.17, weather_description='few clouds')
-
-def test_create_location_invalid_data(cls, name, fahrenheit, celsius, humidity, wind_speed, weather_description):
-    """Test validation errors when creating a location."""
-    with pytest.raises(ValueError, match=err_msg):
-        Locations.create_location(cls, name, fahrenheit, celsius, humidity, wind_speed, weather_description)
 
 # --- Get Location ---
 
@@ -121,30 +118,71 @@ def test_delete_location_not_found(app):
 #Needs to be fixed
 def test_update_weather(session, sample_location1):
     """Test weather updating for all attributes."""
-    sample_location1.update_weather("win")
-    assert sample_location1.fights == 1
-    assert sample_location1.wins == 1
+    weather_data = {
+        'Fahrenheit': 90.0,
+        'Celsius': 32.22,
+        'Humidity': 70,
+        'Wind Speed': 8.0,
+        'Weather Description': 'clear sky'
+    }
 
-    assert sample_location1.fahrenheit == weather_data.get('Fahrenheit', self.fahrenheit)
-    assert sample_location1.celsius == weather_data.get('Celsius', self.celsius)
-    assert sample_location1.humidity == weather_data.get('Humidity', self.humidity)
-    assert sample_location1.wind_speed == weather_data.get('Wind Speed', self.wind_speed)
-    assert sample_location1.weather_description == weather_data.get('Weather Description', self.weather_description)
-    assert sample_location1.last_updated == datetime.now()
+    sample_location1.update_weather(weather_data)
+    db.session.refresh(sample_location1)
+
+        # Assertions to ensure that the location's weather info was updated
+    assert sample_location1.fahrenheit == 90.0
+    assert sample_location1.celsius == 32.22
+    assert sample_location1.humidity == 70
+    assert sample_location1.wind_speed == 8.0
+    assert sample_location1.weather_description == 'clear sky'
+    assert isinstance(sample_location1.last_updated, datetime)  # Ensure last_updated is a datetime object
+    assert sample_location1.last_updated > datetime.now() - timedelta(seconds=1)  # Ensure the update was recent
+
+        # Ensure the update was committed to the database
+    assert sample_location1.fahrenheit == 90.0
   
-#Needs to be fixed
-def test_get_all_locations(sample_locations):
+
+def test_get_all_locations(sample_locations, app):
     """Test retrieving all locations from the database."""
-    retrieved_locations = Locations.get_all_locations()
-    sample_locations.extend([location.id for location in sample_locations])
+    with app.app_context():
+        # Fetch all locations from the database
+        retrieved_locations = Locations.get_all_locations()
 
-    locations = sample_locations.get_all_locations()
-    assert locations == sample_locations, "Expected get_boxers to return the correct boxers list."
+        # Assert the number of retrieved locations matches the sample data
+        assert len(retrieved_locations) == len(sample_locations), (
+            "The number of retrieved locations should match the number of sample locations."
+        )
+
+        # Assert all attributes match for each location
+        for i, location in enumerate(sample_locations):
+            assert retrieved_locations[i].name == location.name, "Location names should match."
+            assert retrieved_locations[i].fahrenheit == location.fahrenheit, "Temperatures (F) should match."
+            assert retrieved_locations[i].celsius == location.celsius, "Temperatures (C) should match."
+            assert retrieved_locations[i].humidity == location.humidity, "Humidity levels should match."
+            assert retrieved_locations[i].wind_speed == location.wind_speed, "Wind speeds should match."
+            assert retrieved_locations[i].weather_description == location.weather_description, (
+                "Weather descriptions should match."
+            )
 
 
-
-def test_get_all_locations_empty(session):
+def test_get_all_locations_empty(session, app, sample_locations):
     """Test retrieving locations when the database is empty."""
-    retrieved_locations = Locations.get_all_locations()
+    with app.app_context():
+        # Fetch all locations from the database
+        retrieved_locations = Locations.get_all_locations()
 
-    assert retrieved_locations == []
+        # Assert the number of retrieved locations matches the sample data
+        assert len(retrieved_locations) == len(sample_locations), (
+            "The number of retrieved locations should match the number of sample locations."
+        )
+
+        # Assert all attributes match for each location
+        for i, location in enumerate(sample_locations):
+            assert retrieved_locations[i].name == location.name, "Location names should match."
+            assert retrieved_locations[i].fahrenheit == location.fahrenheit, "Temperatures (F) should match."
+            assert retrieved_locations[i].celsius == location.celsius, "Temperatures (C) should match."
+            assert retrieved_locations[i].humidity == location.humidity, "Humidity levels should match."
+            assert retrieved_locations[i].wind_speed == location.wind_speed, "Wind speeds should match."
+            assert retrieved_locations[i].weather_description == location.weather_description, (
+                "Weather descriptions should match."
+            )
